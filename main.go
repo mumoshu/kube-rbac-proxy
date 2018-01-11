@@ -45,6 +45,7 @@ type config struct {
 	resourceAttributesFile string
 	auth                   AuthConfig
 	tls                    tlsConfig
+	proxyGRPC bool
 }
 
 type tlsConfig struct {
@@ -73,6 +74,7 @@ func main() {
 	flagset.AddGoFlagSet(stdflag.CommandLine)
 
 	// kube-rbac-proxy flags
+	flagset.BoolVar(&cfg.proxyGRPC, "grpc", false, "Enable gRPC mode")
 	flagset.StringVar(&cfg.insecureListenAddress, "insecure-listen-address", "", "The address the kube-rbac-proxy HTTP server should listen on.")
 	flagset.StringVar(&cfg.secureListenAddress, "secure-listen-address", "", "The address the kube-rbac-proxy HTTPs server should listen on.")
 	flagset.StringVar(&cfg.upstream, "upstream", "", "The upstream URL to proxy to once requests have successfully been authenticated and authorized.")
@@ -156,13 +158,23 @@ func main() {
 		go srv.ServeTLS(l, cfg.tls.certFile, cfg.tls.keyFile)
 	}
 
-	if cfg.insecureListenAddress != "" {
+	if cfg.insecureListenAddress != "" && !cfg.proxyGRPC{
 		l, err := net.Listen("tcp", cfg.insecureListenAddress)
 		if err != nil {
 			glog.Fatalf("Failed to listen on insecure address: %v", err)
 		}
 		glog.Infof("Listening insecurely on %v", cfg.insecureListenAddress)
 		go srv.Serve(l)
+	}
+	if cfg.insecureListenAddress != "" && cfg.proxyGRPC {
+		l, err := net.Listen("tcp", cfg.insecureListenAddress)
+		if err != nil {
+			glog.Fatalf("Failed to listen on insecure address: %v", err)
+		}
+		glog.Infof("Listening insecurely on %v", cfg.insecureListenAddress)
+		server := NewGRPCProxyServer()
+		glog.Infof("Serving a gRPC server on %v", cfg.insecureListenAddress)
+		go server.Serve(l)
 	}
 
 	term := make(chan os.Signal)

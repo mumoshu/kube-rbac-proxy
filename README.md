@@ -78,3 +78,25 @@ PR are more than welcome!
 
 * Tests
 * OIDC support
+
+```$xslt
+- args:
+        - --insecure-listen-address=0.0.0.0:8888
+        - --upstream=http://127.0.0.1:44134/
+        image: mumoshu/kube-rbac-proxy:v0.2.0
+        imagePullPolicy: IfNotPresent
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8888
+          name: grpc
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      - image: mumoshu/krp-curl2:v0.0.1
+        command: ["sleep"]
+        name: sleep
+        args:
+        - "1000"
+        imagePullPolicy: IfNotPresent
+```
