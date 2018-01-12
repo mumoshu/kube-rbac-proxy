@@ -22,3 +22,4 @@ import:
 - package: github.com/mwitkow/grpc-proxy
 - package: google.golang.org/grpc
   version: ~1.9.1
+- package: github.com/hkwi/h2c

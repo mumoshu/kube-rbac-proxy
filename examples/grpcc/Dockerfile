@@ -13,4 +13,8 @@ RUN apk add --update --no-cache python
 # see https://github.com/njpatel/grpcc/pull/48
 RUN yarn global add https://github.com/njpatel/grpcc/archive/d82c570.tar.gz
 
+ADD https://raw.githubusercontent.com/njpatel/grpcc/master/test/test.proto /test.proto
+
+RUN apk add --update --no-cache nghttp2
+
 ENTRYPOINT ["grpcc"]

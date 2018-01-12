@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -218,6 +219,11 @@ func AuthRequest(auth AuthInterface, w http.ResponseWriter, req *http.Request) b
 		http.Error(w, msg, http.StatusForbidden)
 		return false
 	}
+
+	// Seemingly well-known headers to tell the upstream about user's identity
+	// so that the upstream can achieve the original goal of delegating RBAC authn/authz to kube-rbac-proxy
+	req.Header.Set("x-forwarded-user", u.GetName())
+	req.Header.Set("x-forwarded-groups", strings.Join(u.GetGroups(), "|"))
 
 	return true
 }
