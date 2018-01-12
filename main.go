@@ -134,6 +134,10 @@ func main() {
 	srv := &http.Server{Handler: mux}
 
 	if cfg.secureListenAddress != "" {
+		// To enable http/2
+		// See net/http.Server.shouldConfigureHTTP2ForServe for more context
+		srv.TLSConfig.NextProtos = append(srv.TLSConfig.NextProtos, "h2")
+
 		if cfg.tls.certFile == "" && cfg.tls.keyFile == "" {
 			glog.Info("Generating self signed cert as no cert is provided")
 			certBytes, keyBytes, err := certutil.GenerateSelfSignedCertKey("", nil, nil)
@@ -158,23 +162,17 @@ func main() {
 		go srv.ServeTLS(l, cfg.tls.certFile, cfg.tls.keyFile)
 	}
 
-	if cfg.insecureListenAddress != "" && !cfg.proxyGRPC{
+	if cfg.insecureListenAddress != "" {
+		// To force enabling http/2
+		// See net/http.Server.onceSetNextProtoDefaults_Serve for more context
+		srv.TLSConfig = nil
+
 		l, err := net.Listen("tcp", cfg.insecureListenAddress)
 		if err != nil {
 			glog.Fatalf("Failed to listen on insecure address: %v", err)
 		}
 		glog.Infof("Listening insecurely on %v", cfg.insecureListenAddress)
 		go srv.Serve(l)
-	}
-	if cfg.insecureListenAddress != "" && cfg.proxyGRPC {
-		l, err := net.Listen("tcp", cfg.insecureListenAddress)
-		if err != nil {
-			glog.Fatalf("Failed to listen on insecure address: %v", err)
-		}
-		glog.Infof("Listening insecurely on %v", cfg.insecureListenAddress)
-		server := NewGRPCProxyServer()
-		glog.Infof("Serving a gRPC server on %v", cfg.insecureListenAddress)
-		go server.Serve(l)
 	}
 
 	term := make(chan os.Signal)
